@@ -141,3 +141,8 @@ plt.show()
 I made FacetGrid graphs to visually see each day and how the trend for the students in the rec cen looks like by the hour. 
 
 ### Summary
++ Mondays are the most busy
++ Weekends are surprisingly less busy, although students have the day off from school
++ Early afternoon until slightly before dinner time (around 6pm) is the most busy
++ Adjusting schedule for going to rec cen before school or after dinner may lead to a smoother, more efficient workout
+
