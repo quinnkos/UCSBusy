@@ -1,0 +1,139 @@
+---
+title: "Rec Cen Data Model Building"
+author: "James Cha"
+date: "2024-03-01"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+reccen2019 <- read.csv("reccen2019.csv")
+head(reccen2019)
+dim(reccen2019)
+```
+
+```{r}
+# 'Visits' is the column you want to test for Shapiro-Wilk test of normality
+shapiro_result <- shapiro.test(reccen2019$Visits)
+
+# Print the result
+print(shapiro_result)
+```
+
+So it does look like we have normality in our data, what with p value being less than 0.05, at least in terms of visit numbers.
+
+Let's do another test, namely QQ plot, since Shapiro-Wilk test has limitations with larger sample sizes.
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+# Create a Q-Q plot
+ggplot(reccen2019, aes(sample = Visits)) +
+  stat_qq() +
+  stat_qq_line() +
+  ggtitle("Q-Q plot of Visits")
+ # Truncated normal?
+ # Sample distribution
+```
+
+Not entirely sure whether to trust this. Are we allowed to ignore parts that go less than 0? Is it a good fit afterwards? Perhaps it is a better fit to use Poisson.
+
+```{r}
+library(vcd)
+```
+```{r}
+fit <- goodfit(reccen2019$Visits, type = "poisson")
+summary(fit)
+```
+
+Very unlikely. According to Daniel, this may be an "evolving" model, where for each hour, we have different distributions.
+
+Perhaps zero inflated / truncated half Normal distribution / Gamma distribution might do, but these are tough to implement / unlikely.
+
+Let's try breaking apart the dataset instead, by hour. We will have 7 days * 18 different hours, so 126 different datasets.
+```{r}
+reccen2019$DayTime <- paste(reccen2019$Day, reccen2019$Time)
+split_data <- split(reccen2019, reccen2019$DayTime)
+
+split_data[[1]]
+length(split_data)
+```
+The contained data and length seems correct. Now, we should calculate the mean and variance of each of these datasets.
+
+```{r}
+# Compute the mean and variance of 'Visits' for each data frame in the list
+mean_variance_data <- lapply(split_data, function(df) list(mean = mean(df$Visits), variance = var(df$Visits)))
+mean_variance_data[1]
+```
+
+Extreme difference between variance and mean. We should probably use a zero-inflated Poisson model on each of these data
+
+Zero inflated Poisson model is done with the following:
+
+```{r}
+library(pscl)
+```
+
+```{r}
+length(split_data)
+split_data <- split_data[sapply(split_data, function(df) any(df$Visits != 0))]
+length(split_data)
+```
+
+```{r}
+results <- data.frame()
+
+for(i in 1:length(split_data)) {
+  
+  # Extract the 'Visits' column
+  a <- split_data[[i]]$Visits
+  
+  # Check if there are any zero values
+  if(any(a == 0)) {
+    # Fit the zero-inflated Poisson model
+    mzip <- zeroinfl(a ~ 1, dist = "poisson")
+    
+    # Calculate the estimated mean and missing values
+    estimated_mean = exp(coefficients(mzip)["count_(Intercept)"])
+    estimated_missing = coefficients(mzip)["zero_(Intercept)"]
+    estimated_missing = exp(estimated_missing)/(1+exp(estimated_missing))
+  } else {
+    # Fit the regular Poisson model
+    mp <- glm(a ~ 1, family = poisson)
+    
+    # Calculate the estimated mean
+    estimated_mean = exp(coefficients(mp)["(Intercept)"])
+    estimated_missing = NA
+  }
+  
+  # Create a dataframe with the results
+  df <- data.frame(
+    dataframe = names(split_data)[i],
+    estimated_mean = estimated_mean,
+    estimated_missing = estimated_missing
+  )
+  
+  # Append the results to the main dataframe
+  results <- rbind(results, df)
+}
+
+# View the results
+print(results)
+
+```
+
+Great! Estimated_mean is equal to lambda, so we just need to store it somewhere.
+```{r}
+write.csv(results,"~/Downloads/lambda_results.csv", row.names = FALSE)
+```
