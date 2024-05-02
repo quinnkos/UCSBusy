@@ -41,7 +41,7 @@ lambda_results.reset_index(drop=True, inplace=True)
 
 print("What day would you like to work out? ", end="")
 while True:
-    user_day = input().title()
+    user_day = input().strip().title()
     if user_day in days_order:
         lambda_results = lambda_results[lambda_results['day_of_week'] == user_day]
         break
@@ -92,7 +92,7 @@ close_hour = lambda_results['time_24h'].max() + 1
 
 print("When is the earliest you are willing to work out? ", end="")
 while True:
-    earliest_workout_hour = input()
+    earliest_workout_hour = input().strip()
     if earliest_workout_hour.isdigit() and open_hour <= int(earliest_workout_hour) < close_hour:
         earliest_workout_hour = int(earliest_workout_hour)
         break
@@ -101,7 +101,7 @@ while True:
 
 print("When is the latest you are willing to work out until? ", end="")
 while True:
-    latest_workout_hour = input()
+    latest_workout_hour = input().strip()
     if latest_workout_hour.isdigit() and earliest_workout_hour < int(latest_workout_hour) <= close_hour:
         latest_workout_hour = int(latest_workout_hour)
         break
@@ -110,7 +110,7 @@ while True:
 
 print("How many hours will your workout be? ", end="")
 while True:
-    workout_length = input()
+    workout_length = input().strip()
     if workout_length.isdigit() and 1 <= int(workout_length) <= latest_workout_hour - earliest_workout_hour:
         workout_length = int(workout_length)
         break
@@ -129,8 +129,8 @@ print("Best time:", best_time['dataframe'])
 
 # Define colors and alpha values
 line_color = '#4CAF50'
-highlight_color = '#FFC107' 
-background_color = '#FAFAFA' 
+highlight_color = '#FFC107'
+background_color = '#FAFAFA'
 events_color = '#7FB8D8'
 ecAlpha = .3
 
@@ -164,3 +164,4 @@ legend_labels = [handle.get_label() for handle in legend_handles]
 plt.legend(legend_handles, legend_labels, loc='upper right')
 
 plt.show()
+
