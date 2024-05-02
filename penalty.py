@@ -25,35 +25,32 @@ def gather_penalty_values(events):
 def gather_events():
     events = []
 
-    print("What is your schedule like on this day?")
-
     # Allow user to add events until they opt to quit
     while True:
 
-        event_name = input("Enter name of an event (or 'Q' to exit): ")
+        event_name = input("Enter name of event (or 'Q' to exit): ").strip()
         if event_name.upper() == 'Q':
             return events
 
-        print(f"When does '{event_name}' start? Type an hour between 0 and 23: ", end="")
+        print(f"When does '{event_name}' start (enter hour between 0 and 22): ", end="")
         while True:
-            event_start = input()
+            event_start = input().strip()
             if event_start.isdigit() and 0 <= int(event_start) <= 22:
                 break
             else:
                 print("Please enter an hour between 0 and 23: ", end="")
 
-        print(f"When does '{event_name}' end? Enter hour after start time (max 23): ", end="")
+        print(f"When does '{event_name}' end (enter hour after start time (max 23): ", end="")
         while True:
-            event_end = input()
+            event_end = input().strip()
             if event_start.isdigit() and int(event_start) < int(event_end) <= 23:
                 break
             else:
                 print("Please enter an hour after start time (max 23): ", end="")
 
-        print("Now you will input this event's importance in your schedule.")
-        print(f"How important is the commitment '{event_name}' (1 to 5, 5 being highest priority): ", end="")
+        print(f"How important is '{event_name}' (1 to 5): ", end="")
         while True:
-            event_weight = input()
+            event_weight = input().strip()
             if event_weight.isdigit() and 1 <= int(event_weight) <= 5:
                 break
             else:
