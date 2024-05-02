@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 import penalty
 
 
@@ -38,7 +39,7 @@ lambda_results.sort_values(by=['day_of_week', 'time_24h'], inplace=True)
 # Reset the index of the DataFrame
 lambda_results.reset_index(drop=True, inplace=True)
 
-print("On what day would you like to work out? Type 'Monday', 'Tuesday', etc.: ", end="")
+print("What day would you like to work out? ", end="")
 while True:
     user_day = input().title()
     if user_day in days_order:
@@ -89,8 +90,7 @@ lambda_results['linear_combination'] = lambda_results.apply(
 open_hour = lambda_results['time_24h'].min()
 close_hour = lambda_results['time_24h'].max() + 1
 
-print("Please check out the opening times in the Rec Cen website before typing. ")
-print("When is the earliest hour you are willing to work out? Type a number: ", end="")
+print("When is the earliest you are willing to work out? ", end="")
 while True:
     earliest_workout_hour = input()
     if earliest_workout_hour.isdigit() and open_hour <= int(earliest_workout_hour) < close_hour:
@@ -99,7 +99,7 @@ while True:
     else:
         print(f"Please enter a number between {open_hour} and {close_hour - 1}: ", end="")
 
-print("When is the latest hour you are willing to work out until? Type a number: ", end="")
+print("When is the latest you are willing to work out until? ", end="")
 while True:
     latest_workout_hour = input()
     if latest_workout_hour.isdigit() and earliest_workout_hour < int(latest_workout_hour) <= close_hour:
@@ -108,7 +108,7 @@ while True:
     else:
         print(f"Please enter a number between {earliest_workout_hour + 1} and {close_hour}: ", end="")
 
-print("How many hours will your workout be? Type a number: ", end="")
+print("How many hours will your workout be? ", end="")
 while True:
     workout_length = input()
     if workout_length.isdigit() and 1 <= int(workout_length) <= latest_workout_hour - earliest_workout_hour:
@@ -127,15 +127,40 @@ best_time = lambda_results_filtered.loc[
     lambda_results_filtered['linear_combination'].rolling(workout_length).sum().idxmax() - (workout_length - 1)]
 print("Best time:", best_time['dataframe'])
 
-# Plot linear combination of Poisson and Penalty
-plt.plot(lambda_results['time_24h'], lambda_results['linear_combination'], marker='o')
-plt.xlabel('Hour')
-plt.ylabel('Hourly Recommendation')
-plt.title('When to Work Out')
-plt.xticks(range(lambda_results['time_24h'].min(), lambda_results['time_24h'].max(), 2))
-plt.yticks([0, .2, .4, .6, .8, 1])
-plt.grid(True)
-plt.axvspan(best_time['time_24h'], best_time['time_24h'] + workout_length, color='yellow', alpha=0.3)
-plt.axvspan(lambda_results['time_24h'].min(), earliest_workout_hour, color='gray', alpha=0.5)
-plt.axvspan(latest_workout_hour, lambda_results['time_24h'].max() + 1, color='gray', alpha=0.5)
+# Define colors and alpha values
+line_color = '#4CAF50'
+highlight_color = '#FFC107' 
+background_color = '#FAFAFA' 
+events_color = '#7FB8D8'
+ecAlpha = .3
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.rcParams['axes.facecolor'] = background_color
+plt.plot(lambda_results['time_24h'][(lambda_results['time_24h'] >= earliest_workout_hour) & (lambda_results['time_24h'] <= latest_workout_hour)],
+         lambda_results['linear_combination'][(lambda_results['time_24h'] >= earliest_workout_hour) & (lambda_results['time_24h'] <= latest_workout_hour)],
+         linestyle='-', color=line_color, linewidth=1.5)
+plt.title('Optimal Workout Time on ' + best_time['day_of_week'], color='black')
+plt.xlabel('Hour', color='black')
+plt.ylabel('Recommendation Level', color='black')
+x = range(lambda_results['time_24h'].min(), lambda_results['time_24h'].max() + 2, 2)
+plt.xticks(x, [f'{hour:02d}:00' for hour in x], color='black')
+plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1], color='black')
+plt.grid(True, linestyle='--', alpha=0.5, color='black')
+plt.margins(x=0)
+
+# Highlight important time ranges
+highlights = []
+highlights.append(plt.axvspan(best_time['time_24h'], best_time['time_24h'] + workout_length, color=(highlight_color, .4), ec=('black', ecAlpha), label='Workout'))
+plt.axvspan(lambda_results['time_24h'].min(), earliest_workout_hour, color=('lightgray', 0.8), ec=('black', ecAlpha), label = 'Too Early/Late')
+plt.axvspan(latest_workout_hour, lambda_results['time_24h'].max() + 1, color=('lightgray', 0.8), ec=('black', ecAlpha))
+for event in events_list:
+    random_color = '#%02X%02X%02X' % (random.randint(100, 200), random.randint(150, 220), random.randint(200, 255))
+    highlights.append(plt.axvspan(event['start'], event['end'], color=(random_color, .3), ec=('black', ecAlpha), label=event['name']))
+
+# Insert legend in upper right hand corner
+legend_handles = highlights
+legend_labels = [handle.get_label() for handle in legend_handles]
+plt.legend(legend_handles, legend_labels, loc='upper right')
+
 plt.show()
